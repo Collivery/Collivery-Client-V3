@@ -919,7 +919,8 @@ class Collivery
             if (isset($result['id'])) {
                 return $result['id'];
             }
-                    $this->setError('result_unexpected', 'No result returned.');
+
+            $this->setError('result_unexpected', 'No result returned.');
 
             return false;
         }
@@ -929,7 +930,7 @@ class Collivery
      * Accepts the newly created Collivery, moving it from Waiting Client Acceptance
      * to Accepted so that it can be processed.
      */
-    public function acceptCollivery(int $colliveryId): bool
+    public function acceptCollivery(int $colliveryId): array
     {
         if (!$this->token) {
             $this->authenticate();
