@@ -2,8 +2,6 @@
 
 namespace Mds\Collivery\ColliveryApiRequest;
 
-use Mds\Collivery\Cache;
-
 class ColliveryApiRequest extends ApiRequest
 {
     private array $config;
@@ -28,11 +26,11 @@ class ColliveryApiRequest extends ApiRequest
         return [
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
-            'X-App-Name' => 'My Custom App',
-            'X-App-Version' => '0.2.1',
-            'X-App-Host' => '.NET Framework 4.8',
+            'X-App-Name' => $this->config['app_name'],
+            'X-App-Version' => $this->config['app_version'],
+            'X-App-Host' => $this->config['app_host'],
             'X-App-Lang' => 'C#',
-            'X-App-Url' => 'https://example.com',
+            'X-App-Url' => $this->config['app_url'],
         ];
     }
 }
