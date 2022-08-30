@@ -6,12 +6,10 @@ use Mds\Collivery\Cache;
 
 class ColliveryApiRequest extends ApiRequest
 {
-    protected Cache $cache;
     private array $config;
 
-    public function __construct(array $config, Cache $cache)
+    public function __construct(array $config)
     {
-        $this->cache = $cache;
         $this->config = $config;
     }
 

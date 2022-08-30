@@ -957,7 +957,7 @@ class Collivery
 
     protected function init(): bool
     {
-        $this->client = new ColliveryApiRequest((array) $this->config, $this->cache);
+        $this->client = new ColliveryApiRequest((array) $this->config);
 
         return true;
     }
