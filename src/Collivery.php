@@ -1,6 +1,6 @@
 <?php
 
-namespace Mds;
+namespace Mds\Collivery;
 
 use Mds\Collivery\ColliveryApiRequest\ColliveryApiRequest;
 use stdClass;

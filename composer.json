@@ -24,15 +24,5 @@
         "ext-json": "*",
         "php": "^7.4|8.*",
         "friendsofphp/php-cs-fixer": "^3.10"
-    },
-    "extra": {
-        "laravel": {
-            "providers": [
-                "Mds\\Collivery\\ColliveryServiceProvider"
-            ],
-            "aliases": {
-                "Collivery": "Mds\\Collivery\\Facade"
-            }
-        }
     }
 }
