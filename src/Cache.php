@@ -1,6 +1,6 @@
 <?php
 
-namespace Mds\Collivery;
+namespace Mds;
 
 class Cache
 {
