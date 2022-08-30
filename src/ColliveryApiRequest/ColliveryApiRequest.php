@@ -9,7 +9,7 @@ class ColliveryApiRequest extends ApiRequest
     protected Cache $cache;
     private array $config;
 
-    public function __construct(array $config, $cache)
+    public function __construct(array $config, Cache $cache)
     {
         $this->cache = $cache;
         $this->config = $config;
