@@ -133,6 +133,10 @@ abstract class ApiRequest implements ApiRequestContract
         $contents = $response->getBody();
         $response = json_decode($contents, true);
 
+        if (array_key_exists('meta', $response)) {
+            return $response;
+        }
+
         return $response['data'] ?? [];
     }
 }
