@@ -40,7 +40,6 @@ class Collivery
             ];
         } else {
             $this->config = (object) $config;
-
         }
 
         foreach ($config as $key => $value) {
@@ -752,7 +751,54 @@ class Collivery
      */
     public function getPrice(array $data)
     {
-        return $this->validate($data);
+        if (!array_key_exists('collection_town', $data) && !array_key_exists('delivery_location_type', $data)) {
+            $towns = $this->getTowns();
+            if (!isset($data['collivery_from']) && !isset($data['from_town_id'])) {
+                $this->setError('missing_data', 'collivery_from/from_town_id not set.');
+            } elseif (isset($data['collivery_from']) && !is_array($this->getAddress($data['collivery_from']))) {
+                $this->setError('invalid_data', 'Invalid Address ID for: collivery_from.');
+            } elseif (isset($data['from_town_id']) && !isset($towns[$data['from_town_id']])) {
+                $this->setError('invalid_data', 'Invalid Town ID for: from_town_id.');
+            }
+
+            if (!isset($data['collivery_to']) && !isset($data['to_town_id'])) {
+                $this->setError('missing_data', 'collivery_to/to_town_id not set.');
+            } elseif (isset($data['collivery_to']) && !is_array($this->getAddress($data['collivery_to']))) {
+                $this->setError('invalid_data', 'Invalid Address ID for: collivery_to.');
+            } elseif (isset($data['to_town_id']) && !isset($towns[$data['to_town_id']])) {
+                $this->setError('invalid_data', 'Invalid Town ID for: to_town_id.');
+            }
+        }
+
+
+        if (!isset($data['service'])) {
+            $this->setError('missing_data', 'service not set.');
+        }
+
+        if (!$this->hasErrors()) {
+            $data['services'] = [$data['service']];
+            $data['api_token'] = $this->token;
+
+            try {
+                $result = $this->client()->request(
+                    '/v3/quote/',
+                    $data,
+                    'POST'
+                );
+            } catch (HttpException $e) {
+                $this->setError($e->getCode(), $e->getMessage());
+
+                return false;
+            }
+
+            if (!empty($result)) {
+                return $result;
+            }
+
+            $this->setError('result_unexpected', 'No result returned.');
+
+            return false;
+        }
     }
 
     /**
