@@ -751,6 +751,8 @@ class Collivery
      */
     public function getPrice(array $data)
     {
+        $shouldMap = false;
+
         if (!array_key_exists('collection_town', $data) && !array_key_exists('delivery_location_type', $data)) {
             $towns = $this->getTowns();
             if (!isset($data['collivery_from']) && !isset($data['from_town_id'])) {
@@ -768,6 +770,7 @@ class Collivery
             } elseif (isset($data['to_town_id']) && !isset($towns[$data['to_town_id']])) {
                 $this->setError('invalid_data', 'Invalid Town ID for: to_town_id.');
             }
+            $shouldMap = true;
         }
 
 
@@ -778,6 +781,16 @@ class Collivery
         if (!$this->hasErrors()) {
             $data['services'] = [$data['service']];
             $data['api_token'] = $this->token;
+            if ($shouldMap) {
+                if (isset($data['to_town_id'], $data['from_town_id'])) {
+                    $data['collection_town'] = $data['from_town_id'];
+                    $data['delivery_town'] = $data['to_town_id'];
+                }
+                if (isset($data['collivery_from'], $data['collivery_to'])) {
+                    $data['collection_address'] = $data['collivery_from'];
+                    $data['delivery_address'] = $data['collivery_to'];
+                }
+            }
 
             try {
                 $result = $this->client()->request(
