@@ -56,9 +56,10 @@ class Collivery
      * Returns a list of towns and their ID's for creating new addresses.
      * Town can be filtered by country of province (ZAF Only).
      */
-    public function getTowns(string $country = 'ZAF', ?string $province = null): ?array
+    public function getTowns(string $country = 'ZAF', ?string $province = null, int $perPage = 0, int $page = 1): ?array
     {
         $cacheKey = "collivery.towns.$country";
+        $this->cache->forget($cacheKey);
         if ($province) {
             $cacheKey .= $cacheKey = ".$province";
         }
@@ -72,6 +73,8 @@ class Collivery
                 'province' => $province,
                 'country' => $country,
                 'api_token' => $this->token,
+                'per_page' => $perPage,
+                'page' => $page,
             ]);
 
             if (!empty($towns)) {
