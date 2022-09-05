@@ -59,7 +59,6 @@ class Collivery
     public function getTowns(string $country = 'ZAF', ?string $province = null, int $perPage = 0, int $page = 1): ?array
     {
         $cacheKey = "collivery.towns.$country";
-        $this->cache->forget($cacheKey);
         if ($province) {
             $cacheKey .= $cacheKey = ".$province";
         }
