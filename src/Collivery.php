@@ -754,6 +754,9 @@ class Collivery
     public function getPrice(array $data)
     {
         $shouldMap = false;
+        if (!$this->client_id) {
+            $this->authenticate();
+        }
 
         if (!array_key_exists('collection_town', $data) && !array_key_exists('delivery_location_type', $data)) {
             $towns = $this->getTowns();
