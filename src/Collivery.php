@@ -210,13 +210,17 @@ class Collivery
      */
     public function getServices(): ?array
     {
+        if (!$this->client_id) {
+            $this->authenticate();
+        }
+
         $cacheKey = 'collivery.services';
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
 
         try {
-            $result = $this->api->request('/v3/service_types', [
+            $result = $this->client()->request('/v3/service_types', [
                 'query' => [
                     'api_token' => $this->token,
                 ],
@@ -836,6 +840,10 @@ class Collivery
      */
     public function validate(array $data)
     {
+        if (!$this->client_id) {
+            $this->authenticate();
+        }
+
         $contacts_from = $this->getContacts($data['collivery_from']);
         $contacts_to = $this->getContacts($data['collivery_to']);
         $parcel_types = $this->getParcelTypes();
