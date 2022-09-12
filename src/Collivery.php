@@ -674,7 +674,7 @@ class Collivery
         if (!$this->hasErrors()) {
             try {
                 $data['api_token'] = $this->token;
-                $result = $this->client()->request('/v3/address/', $data);
+                $result = $this->client()->request('/v3/address/', $data, 'POST');
                 $this->cache->forget('collivery.addresses.'.$this->client_id);
             } catch (HttpException $e) {
                 $this->setError($e->getCode(), $e->getMessage());
