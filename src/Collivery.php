@@ -638,8 +638,8 @@ class Collivery
             $this->authenticate();
         }
         $location_types = $this->getLocationTypes();
-        $towns = $this->getTowns();
-        $suburbs = $this->getSuburbs($data['town_id']);
+        $towns = $this->formatData($this->getTowns(), ['name', 'id']);
+        $suburbs = $this->getSuburbs($data['id']);
 
         if (!isset($data['location_type'])) {
             $this->setError('missing_data', 'location_type not set.');
@@ -667,7 +667,7 @@ class Collivery
             $this->setError('missing_data', 'full_name not set.');
         }
 
-        if (!isset($data['phone']) and !isset($data['cellphone'])) {
+        if (!isset($data['contact']['phone']) and !isset($data['contact']['cellphone'])) {
             $this->setError('missing_data', 'Please supply ether a phone or cellphone number...');
         }
 
@@ -781,7 +781,6 @@ class Collivery
             }
             $shouldMap = true;
         }
-
 
         if (!isset($data['service'])) {
             $this->setError('missing_data', 'service not set.');
@@ -1030,6 +1029,13 @@ class Collivery
             $this->setError('result_unexpected', 'No result returned.');
 
         return false;
+    }
+
+    public function formatData(array $data, array $fields): array
+    {
+        [$key, $value] = $fields;
+
+        return array_column(array_key_exists('data', $data) ? $data['data'] : $data, $key, $value);
     }
 
     protected function init(): bool
