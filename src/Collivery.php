@@ -639,7 +639,7 @@ class Collivery
         }
         $location_types = $this->getLocationTypes();
         $towns = $this->formatData($this->getTowns(), ['name', 'id']);
-        $suburbs = $this->getSuburbs($data['town_id']);
+        $suburbs = $this->formatData($this->getSuburbs($data['town_id']), ['name', 'id']);
 
         if (!isset($data['location_type'])) {
             $this->setError('missing_data', 'location_type not set.');
@@ -663,7 +663,7 @@ class Collivery
             $this->setError('missing_data', 'street not set.');
         }
 
-        if (!isset($data['full_name'])) {
+        if (!isset($data['contact']['full_name'])) {
             $this->setError('missing_data', 'full_name not set.');
         }
 
