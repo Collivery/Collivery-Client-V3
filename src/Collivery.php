@@ -866,7 +866,7 @@ class Collivery
 
         if (!isset($data['contact_to'])) {
             $this->setError('missing_data', 'contact_to not set.');
-        } elseif (!isset($contacts_to[$data['contact_to']])) {
+        } elseif (!$this->searchContact($contacts_to, $data['contact_to'])) {
             $this->setError('invalid_data', 'Invalid Contact ID for: contact_to.');
         }
 
