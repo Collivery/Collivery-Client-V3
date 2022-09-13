@@ -844,7 +844,7 @@ class Collivery
         $contacts_from = $this->getContacts($data['collivery_from']);
         $contacts_to = $this->getContacts($data['collivery_to']);
         $parcel_types = $this->getParcelTypes();
-        $services = $this->getServices();
+        $services = $this->formatData($this->getServices(), ['text', 'id']);
 
         if (!isset($data['collivery_from'])) {
             $this->setError('missing_data', 'collivery_from not set.');
