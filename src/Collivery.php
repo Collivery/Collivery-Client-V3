@@ -991,8 +991,8 @@ class Collivery
                 return false;
             }
 
-            if (isset($result['id'])) {
-                return $result['id'];
+            if (isset($result['data']['id'])) {
+                return $result['data']['id'];
             }
 
             $this->setError('result_unexpected', 'No result returned.');
