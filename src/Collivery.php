@@ -221,9 +221,7 @@ class Collivery
 
         try {
             $result = $this->client()->request('/v3/service_types', [
-                'query' => [
-                    'api_token' => $this->token,
-                ],
+                'api_token' => $this->token,
             ]);
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
