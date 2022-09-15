@@ -348,7 +348,6 @@ class Collivery
         }
 
         if (!empty($result)) {
-
             $result = $result['data'];
 
             if ($this->checkCache != 0 && empty($filter)) {
@@ -1053,7 +1052,7 @@ class Collivery
         $contacts_from = $this->getContacts($data['collivery_from'])['data'];
         $contacts_to = $this->getContacts($data['collivery_to'])['data'];
         $parcel_types = $this->getParcelTypes();
-        $services = $this->formatData($this->getServices(), ['text', 'id']);
+        $services = $this->getServices();
 
         if (!isset($data['collivery_from'])) {
             $this->setError('missing_data', 'collivery_from not set.');
@@ -1087,7 +1086,7 @@ class Collivery
 
         if (!isset($data['service'])) {
             $this->setError('missing_data', 'service not set.');
-        } elseif (!isset($services[$data['service']])) {
+        } elseif (!isset($services[(int) $data['service']])) {
             $this->setError('invalid_data', 'Invalid service.');
         }
     }
