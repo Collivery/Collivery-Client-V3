@@ -334,7 +334,6 @@ class Collivery
             $this->authenticate();
         }
         $cacheKey = 'collivery.addresses.'.$this->clientId;
-        $this->cache->forget($cacheKey);
         if (($this->checkCache == 2) && empty($filter) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -349,14 +348,9 @@ class Collivery
         }
 
         if (!empty($result)) {
-            $towns = $this->getTowns();
 
             $result = $result['data'];
-            /*$result = $result->map(function ($address) use ($towns) {
-                arra
-                return $address;
-            });
-            dd($result);*/
+
             if ($this->checkCache != 0 && empty($filter)) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
