@@ -1128,7 +1128,8 @@ class Collivery
         $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
         $totalWeight = 0;
         foreach ($data['parcels'] as $parcel) {
-            $totalWeight += $parcel['weight'] * $parcel['quantity'];
+            $quantity = $parcel['quantity'] ?? 1;
+            $totalWeight += $parcel['weight'] * $quantity;
         }
         $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
         $newData['weight'] = round($totalWeight, 2);
