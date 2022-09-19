@@ -300,7 +300,7 @@ class Collivery
             $this->authenticate();
         }
         $cacheKey = 'collivery.address.'.$this->clientId.'.'.$addressId;
-
+        $this->cache->forget($cacheKey);
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -316,6 +316,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->mapAddress($result);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -336,6 +337,7 @@ class Collivery
             $this->authenticate();
         }
         $cacheKey = 'collivery.addresses.'.$this->clientId;
+        $this->cache->forget($cacheKey);
         if (($this->checkCache == 2) && empty($filter) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -350,8 +352,7 @@ class Collivery
         }
 
         if (!empty($result)) {
-            $result = $result['data'];
-
+            $result = $this->mapAddress($result['data']);
             if ($this->checkCache != 0 && empty($filter)) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -1171,5 +1172,26 @@ class Collivery
 
             return $contact + ['nice_contact' => $nicely_formatted];
         }, $contacts);
+    }
+
+    private function mapAddress(array $addresses): array
+    {
+        $ids = array_column($addresses, 'id');
+
+        if (count($ids) > 1) {
+            return array_map(function ($address) {
+                $address = $address + ['nice_address' => $address['text']];
+                $address = $address + ['building_details' => $address['building_complex_name']];
+
+                return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
+            }, $addresses);
+        }
+
+        $address = $addresses + ['nice_address' => $addresses['text']];
+        $address = $address + ['building_details' => $address['building_complex_name']];
+
+        return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
+
+
     }
 }
