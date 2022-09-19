@@ -2,12 +2,15 @@
 
 namespace Mds\Collivery;
 
+use Carbon\Carbon;
 use Mds\Collivery\ColliveryApiRequest\ColliveryApiRequest;
+use Mds\Collivery\Models\ValueAddedTax;
 use stdClass;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class Collivery
 {
+    use ValueAddedTax;
     public bool $useV3;
     protected $client;
     protected stdClass $config;
@@ -818,7 +821,7 @@ class Collivery
             }
 
             if (!empty($result)) {
-                return $result;
+                return $this->mappedResult($data, $result);
             }
 
             $this->setError('result_unexpected', 'No result returned.');
@@ -867,7 +870,7 @@ class Collivery
             if (!empty($result)) {
                 // process results
                 // times set to the quotes send back
-                return $result;
+                return $this->mappedResult($data, $result);
             }
 
             $this->setError('result_unexpected', 'No result returned.');
@@ -1103,5 +1106,33 @@ class Collivery
         }
 
         return $data;
+    }
+
+    private function mappedResult(array $data, array $result): array
+    {
+        $newData = $data;
+        unset($newData['api_token']);
+        foreach ($result['meta']['times'] as $times) {
+            foreach ($times as $key => $time) {
+                $newData[$key] = strtotime($time);
+            }
+        }
+
+        $colDate = Carbon::parse(date('Y-m-d H:i', $newData['collection_time']));
+        $total = $result['data'][0]['total'];
+        $newData['price']['ex_vat'] = round($total, 2);
+        $newData['price']['inc_vat'] = round($this->addVat($total, $colDate));
+        $newData['price']['vat'] = round($this->vatAmount($total, $colDate), 2);
+        $newData['price']['vat_pct'] = $this->vatPercentage($colDate);
+        $newData['delivery_type'] = $result['data'][0]['delivery_type'];
+        $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
+        $totalWeight = 0;
+        foreach ($data['parcels'] as $parcel) {
+            $totalWeight += $parcel['weight'] * $parcel['quantity'];
+        }
+        $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
+        $newData['weight'] = round($totalWeight, 2);
+
+        return $newData;
     }
 }
