@@ -807,7 +807,7 @@ class Collivery
             $this->setError('missing_data', 'service not set.');
         }
         if (!$this->hasErrors()) {
-            $data['services'] = [$data['service']];
+            //$data['services'] = [$data['service']];
             $data['api_token'] = $this->token;
             if ($shouldMap) {
                 $data = $this->commonFieldsMapping($data);
@@ -1102,7 +1102,7 @@ class Collivery
 
     private function commonFieldsMapping(array $data): array
     {
-        if (isset($data['collection_time'])) {
+        if (isset($data['collection_time']) && is_numeric($data['collection_time'])) {
             $data['collection_time'] = date('Y-m-d H:i', $data['collection_time']);
         }
         if (isset($data['to_town_id'], $data['from_town_id'])) {
