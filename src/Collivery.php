@@ -678,15 +678,22 @@ class Collivery
             $this->setError('missing_data', 'street not set.');
         }
 
-        if (!isset($data['contact']['full_name'])) {
+        if (!isset($data['full_name'])) {
             $this->setError('missing_data', 'full_name not set.');
         }
 
-        if (!isset($data['contact']['phone']) and !isset($data['contact']['cellphone'])) {
+        if (!isset($data['phone']) and !isset($data['cellphone'])) {
             $this->setError('missing_data', 'Please supply ether a phone or cellphone number...');
         }
 
         if (!$this->hasErrors()) {
+            $data['contact'] = [
+                'full_name' => $data['full_name'],
+                'phone' => str_replace(' ', '', $data['phone']),
+                'cellphone' => str_replace(' ', '', $data['cellphone']),
+                'email' => $data['email'],
+            ];
+
             try {
                 $data['api_token'] = $this->token;
                 $result = $this->client()->request('/v3/address/', $data, 'POST');
