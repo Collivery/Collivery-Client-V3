@@ -370,7 +370,6 @@ class Collivery
         }
 
         $cacheKey = 'collivery.contacts.'.$this->clientId.'.'.$addressId;
-
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -387,7 +386,7 @@ class Collivery
         }
 
         if (!empty($result)) {
-            $result = $result['data'];
+            $result = $this->mapContacts($result['data']);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -488,6 +487,7 @@ class Collivery
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 12);
             }
+
             return $result;
         }
         $this->setError('result_unexpected', 'No result returned.');
@@ -806,7 +806,7 @@ class Collivery
             $this->setError('missing_data', 'service not set.');
         }
         if (!$this->hasErrors()) {
-            //$data['services'] = [$data['service']];
+            // $data['services'] = [$data['service']];
             $data['api_token'] = $this->token;
             if ($shouldMap) {
                 $data = $this->commonFieldsMapping($data);
@@ -1157,5 +1157,19 @@ class Collivery
         }
 
         return $newParcelTypes;
+    }
+
+    private function mapContacts(array $contacts): array
+    {
+        return array_map(function ($contact) {
+            $nicely_formatted = implode(', ', array_filter([
+                $contact['full_name'],
+                $contact['work_phone'],
+                $contact['cellphone'],
+                $contact['email'],
+            ]));
+
+            return $contact + ['nice_contact' => $nicely_formatted];
+        }, $contacts);
     }
 }
