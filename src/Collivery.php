@@ -300,6 +300,7 @@ class Collivery
             $this->authenticate();
         }
         $cacheKey = 'collivery.address.'.$this->clientId.'.'.$addressId;
+
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -1167,7 +1168,7 @@ class Collivery
                 $contact['cellphone'],
                 $contact['email'],
             ]));
-
+            $contact = $contact + ['phone' => $contact['cellphone']?? $contact['work_phone']];
             return $contact + ['nice_contact' => $nicely_formatted];
         }, $contacts);
     }
@@ -1190,7 +1191,6 @@ class Collivery
         $address = $addresses + ['nice_address' => $addresses['text']];
         $address = $address + ['building_details' => $address['building_complex_name']];
         $address = $address + ['street' => $address['street_number'].$address['street_name']];
-        $address = $address + ['country_brief' => ($address['country_name'] === 'South Africa') ? 'ZAF' : $address['country_name']];
 
         return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
     }
