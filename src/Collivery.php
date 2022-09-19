@@ -1135,12 +1135,16 @@ class Collivery
         $newData['delivery_type'] = $result['data'][0]['delivery_type'];
         $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
         $totalWeight = 0;
+        $volMetric = 0;
         foreach ($data['parcels'] as $parcel) {
             $quantity = $parcel['quantity'] ?? 1;
             $totalWeight += $parcel['weight'] * $quantity;
+            $volMetric += ($quantity * (($parcel['length'] * $parcel['length'] * $parcel['height']) / 5000));
         }
         $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
         $newData['weight'] = round($totalWeight, 2);
+        $newData['vol_weight '] = round($volMetric, 2);
+        $newData['vm_divisor '] = 5000;
 
         return $newData;
     }
