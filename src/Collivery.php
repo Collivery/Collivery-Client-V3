@@ -300,7 +300,6 @@ class Collivery
             $this->authenticate();
         }
         $cacheKey = 'collivery.address.'.$this->clientId.'.'.$addressId;
-        $this->cache->forget($cacheKey);
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -337,7 +336,6 @@ class Collivery
             $this->authenticate();
         }
         $cacheKey = 'collivery.addresses.'.$this->clientId;
-        $this->cache->forget($cacheKey);
         if (($this->checkCache == 2) && empty($filter) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
