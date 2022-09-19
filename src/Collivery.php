@@ -387,6 +387,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $result['data'];
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
