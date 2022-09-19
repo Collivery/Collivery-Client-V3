@@ -1181,6 +1181,7 @@ class Collivery
                 $address = $address + ['nice_address' => $address['text']];
                 $address = $address + ['building_details' => $address['building_complex_name']];
                 $address = $address + ['street' => $address['street_number'].$address['street_name']];
+                $address = $address + ['country_brief' => ($address['country_name'] === 'South Africa') ? 'ZAF' : $address['country_name']];
 
                 return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
             }, $addresses);
