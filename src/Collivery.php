@@ -265,7 +265,6 @@ class Collivery
     public function getParcelTypes(): ?array
     {
         $cacheKey = 'collivery.parcel_types';
-
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -288,7 +287,7 @@ class Collivery
                 $this->cache->put($cacheKey, $result, 60 * 24 * 7);
             }
 
-            return $result;
+            return $this->mapParcelTypes($result);
         }
         $this->setError('result_unexpected', 'No results returned.');
 
@@ -1142,5 +1141,19 @@ class Collivery
         $newData['weight'] = round($totalWeight, 2);
 
         return $newData;
+    }
+
+    private function mapParcelTypes(array $parcelTypes): array
+    {
+        $newParcelTypes = [];
+
+        foreach ($parcelTypes as $parcelType) {
+            $newParcelTypes[$parcelType['id']] = [
+                'type_text' => $parcelType['type_text'],
+                'type_description' => $parcelType['type_description'],
+            ];
+        }
+
+        return $newParcelTypes;
     }
 }
