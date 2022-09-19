@@ -311,7 +311,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
@@ -324,7 +324,7 @@ class Collivery
         }
             $this->setError('result_unexpected', 'No address_id returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -1190,6 +1190,7 @@ class Collivery
         $address = $addresses + ['nice_address' => $addresses['text']];
         $address = $address + ['building_details' => $address['building_complex_name']];
         $address = $address + ['street' => $address['street_number'].$address['street_name']];
+        $address = $address + ['country_brief' => ($address['country_name'] === 'South Africa') ? 'ZAF' : $address['country_name']];
 
         return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
     }
