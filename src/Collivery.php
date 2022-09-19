@@ -1111,7 +1111,7 @@ class Collivery
     private function mappedResult(array $data, array $result): array
     {
         $newData = $data;
-        unset($newData['api_token']);
+        unset($newData['api_token'], $newData['services']);
         foreach ($result['meta']['times'] as $times) {
             foreach ($times as $key => $time) {
                 $newData[$key] = strtotime($time);
