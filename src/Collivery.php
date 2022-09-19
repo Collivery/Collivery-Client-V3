@@ -1168,7 +1168,8 @@ class Collivery
                 $contact['cellphone'],
                 $contact['email'],
             ]));
-            $contact = $contact + ['phone' => $contact['cellphone']?? $contact['work_phone']];
+            $contact = $contact + ['phone' => $contact['cellphone'] ?? $contact['work_phone']];
+
             return $contact + ['nice_contact' => $nicely_formatted];
         }, $contacts);
     }
