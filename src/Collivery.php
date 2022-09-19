@@ -479,21 +479,19 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
-        if (!empty($result)) {
-            if (isset($result['error_id'])) {
-                $this->setError($result['error_id'], $result['error']);
-            } elseif ($this->checkCache != 0) {
+        if (!empty($result['data'])) {
+            $result = $result['data'];
+            if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 12);
             }
-
             return $result;
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
