@@ -1180,6 +1180,7 @@ class Collivery
             return array_map(function ($address) {
                 $address = $address + ['nice_address' => $address['text']];
                 $address = $address + ['building_details' => $address['building_complex_name']];
+                $address = $address + ['street' => $address['street_number'].$address['street_name']];
 
                 return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
             }, $addresses);
@@ -1187,9 +1188,8 @@ class Collivery
 
         $address = $addresses + ['nice_address' => $addresses['text']];
         $address = $address + ['building_details' => $address['building_complex_name']];
+        $address = $address + ['street' => $address['street_number'].$address['street_name']];
 
         return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
-
-
     }
 }
