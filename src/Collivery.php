@@ -461,7 +461,7 @@ class Collivery
     /**
      * Returns a list of avaibale parcel images for a given Waybill Number.
      */
-    public function getParcelImageList(int $colliveryId): ?array
+    public function getParcelImageList(int $colliveryId)
     {
         if (!$this->clientId) {
             $this->authenticate();
