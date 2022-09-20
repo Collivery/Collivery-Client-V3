@@ -752,7 +752,6 @@ class Collivery
                     $data,
                     'POST'
                 );
-                $this->cache->forget($cacheKey);
             } catch (HttpException $e) {
                 $this->setError($e->getCode(), $e->getMessage());
 
@@ -820,7 +819,6 @@ class Collivery
                 );
             } catch (HttpException $e) {
                 $this->setError($e->getCode(), $e->getMessage());
-                dd($e->getMessage());
 
                 return false;
             }
