@@ -336,6 +336,7 @@ class Collivery
         if (!$this->clientId) {
             $this->authenticate();
         }
+
         $cacheKey = 'collivery.addresses.'.$this->clientId;
         if (($this->checkCache == 2) && empty($filter) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
@@ -935,7 +936,7 @@ class Collivery
             $result = $this->client()->request('/v3/status_tracking/'.$colliveryId, [
                 'api_token' => $this->token,
                 'status_id' => 3,
-            ]);
+            ], 'PUT');
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
