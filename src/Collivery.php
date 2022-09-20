@@ -1141,8 +1141,8 @@ class Collivery
         }
         $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
         $newData['weight'] = round($totalWeight, 2);
-        $newData['vol_weight '] = round($volMetric, 2);
-        $newData['vm_divisor '] = 5000;
+        $newData['vol_weight'] = round($volMetric, 2);
+        $newData['vm_divisor'] = 5000;
 
         return $newData;
     }
