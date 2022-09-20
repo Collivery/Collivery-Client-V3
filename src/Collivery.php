@@ -316,7 +316,7 @@ class Collivery
         }
 
         if (!empty($result)) {
-            $result = $this->mapAddress($result);
+            $result = $this->mapAddress([$result])[0];
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
