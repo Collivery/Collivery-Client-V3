@@ -1055,8 +1055,8 @@ class Collivery
             $this->authenticate();
         }
 
-        $contacts_from = $this->getContacts($data['collivery_from'])['data'];
-        $contacts_to = $this->getContacts($data['collivery_to'])['data'];
+        $contacts_from = $this->getContacts($data['collivery_from']);
+        $contacts_to = $this->getContacts($data['collivery_to']);
         $parcel_types = $this->getParcelTypes();
         $services = $this->getServices();
 
