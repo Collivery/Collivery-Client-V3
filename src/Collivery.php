@@ -283,11 +283,12 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->mapParcelTypes($result);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24 * 7);
             }
 
-            return $this->mapParcelTypes($result);
+            return $result;
         }
         $this->setError('result_unexpected', 'No results returned.');
 
@@ -1188,4 +1189,5 @@ class Collivery
             return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
         }, $addresses);
     }
+
 }
