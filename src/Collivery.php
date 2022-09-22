@@ -449,15 +449,15 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
-            return $result;
+            return $result['data'];
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -569,7 +569,7 @@ class Collivery
 
         if (!empty($result)) {
             $size = count($result);
-            $result = $result[$size - 1]; // latest only
+            $result = $this->mapStatus($result[$size - 1], $colliveryId); // latest only
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 12);
             }
@@ -1190,5 +1190,17 @@ class Collivery
 
             return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
         }, $addresses);
+    }
+    private function mapStatus(array $status, int $colliveryId): array
+    {
+        $waybill = $this->getWaybill($colliveryId);
+
+        $status['status_text'] = $status['status_name'];
+        if ($waybill) {
+            $status['delivery_date'] = date('Y-m-d', $waybill['delivery_time']);
+            $status['delivery_time'] = date('H:i:s', $waybill['delivery_time']);
+        }
+
+        return $status;
     }
 }
