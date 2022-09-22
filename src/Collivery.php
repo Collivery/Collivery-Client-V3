@@ -388,7 +388,7 @@ class Collivery
         }
 
         if (!empty($result)) {
-            $result = $this->mapContacts($result['data']);
+            $result = $this->mapContacts($result['data'], $addressId);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -1165,9 +1165,10 @@ class Collivery
         return $newParcelTypes;
     }
 
-    private function mapContacts(array $contacts): array
+    private function mapContacts(array $contacts, int $addressId): array
     {
-        return array_map(function ($contact) {
+        $newContacts = [];
+        $contacts = array_map(function ($contact) use ($addressId) {
             $nicely_formatted = implode(', ', array_filter([
                 $contact['full_name'],
                 $contact['work_phone'],
@@ -1175,9 +1176,17 @@ class Collivery
                 $contact['email'],
             ]));
             $contact = $contact + ['phone' => $contact['cellphone'] ?? $contact['work_phone']];
+            $contact = $contact + ['address_id' => $addressId];
+            $contact = $contact + ['contact_id' => $contact['id']];
 
             return $contact + ['nice_contact' => $nicely_formatted];
         }, $contacts);
+
+        foreach ($contacts as $contact) {
+            $newContacts[$contact['id']] = $contact;
+        }
+
+        return $newContacts;
     }
 
     private function mapAddress(array $addresses): array
@@ -1191,6 +1200,7 @@ class Collivery
             return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
         }, $addresses);
     }
+
     private function mapStatus(array $status, int $colliveryId): array
     {
         $waybill = $this->getWaybill($colliveryId);
