@@ -453,7 +453,7 @@ class Collivery
         }
 
         if (!empty($result)) {
-            return $result['data'];
+            return $result;
         }
         $this->setError('result_unexpected', 'No result returned.');
 
