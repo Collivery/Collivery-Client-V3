@@ -442,6 +442,9 @@ class Collivery
      */
     public function getWaybill(int $colliveryId): ?array
     {
+        if (!$this->clientId) {
+            $this->authenticate();
+        }
         try {
             $result = $this->client()->request('/v3/waybill/'.$colliveryId, [
                 'api_token' => $this->token,
