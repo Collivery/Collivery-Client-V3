@@ -108,8 +108,8 @@ abstract class ApiRequest implements ApiRequestContract
         if (is_object($contents) && property_exists($contents, 'message')) {
             return $contents->message;
         }
-
-        throw new ValidationException((array) $contents);
+        $contents = is_array($contents) ? $contents : (array) $contents;
+        throw new ValidationException($contents);
     }
 
     private function handleRequest(string $url, array $urlParameters, string $method): array
