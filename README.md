@@ -21,6 +21,8 @@ Included is a simple cache file that handles all the caching. Its a file based c
 
 The package is also available on Composer as mds/collivery.
 
+Use ValidationException class for errors that might be thrown by API other than HttpException errors
+
 Usage
 =====
 
