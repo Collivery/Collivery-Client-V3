@@ -445,6 +445,7 @@ class Collivery
         if (!$this->clientId) {
             $this->authenticate();
         }
+
         try {
             $result = $this->client()->request('/v3/waybill/'.$colliveryId, [
                 'api_token' => $this->token,
@@ -787,7 +788,6 @@ class Collivery
         if (!$this->clientId) {
             $this->authenticate();
         }
-
         if (!array_key_exists('collection_town', $data) && !array_key_exists('delivery_location_type', $data)) {
             $towns = $this->getTowns();
             if (!isset($data['collivery_from']) && !isset($data['from_town_id'])) {
@@ -1130,7 +1130,7 @@ class Collivery
                 $newData[$key] = strtotime($time);
             }
         }
-
+        $notes = [];
         $colDate = Carbon::parse(date('Y-m-d H:i', $newData['collection_time']));
         $total = $result['data'][0]['total'];
         $newData['price']['ex_vat'] = round($total, 2);
@@ -1139,6 +1139,12 @@ class Collivery
         $newData['price']['vat_pct'] = $this->vatPercentage($colDate);
         $newData['delivery_type'] = $result['data'][0]['delivery_type'];
         $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
+        if (!isset($result['meta']['warnings'], $result['meta']['times'], $result['meta']['surcharges'])) {
+            foreach ($result['meta'] as $value) {
+                $notes[] = $value;
+            }
+        }
+        $newData['time_changed_reason'] = $notes;
         $totalWeight = 0;
         $volMetric = 0;
         foreach ($data['parcels'] as $parcel) {
