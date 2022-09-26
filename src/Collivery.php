@@ -1143,6 +1143,10 @@ class Collivery
             foreach ($result['meta'] as $value) {
                 $notes[] = $value;
             }
+        } else {
+            foreach ($result['meta']['warnings'] as $value) {
+                $notes[] = $value;
+            }
         }
         $newData['time_changed_reason'] = $notes;
         $totalWeight = 0;
