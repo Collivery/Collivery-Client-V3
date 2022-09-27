@@ -17,12 +17,12 @@
     ],
     "require-dev": {
         "orchestra/testbench": "^v6.24.0",
-        "phpunit/phpunit": "^9.5"
+        "phpunit/phpunit": "^9.5",
+        "friendsofphp/php-cs-fixer": "^3.10"
     },
     "require": {
         "guzzlehttp/guzzle": "*",
         "ext-json": "*",
-        "php": "^7.4|8.*",
-        "friendsofphp/php-cs-fixer": "^3.10"
+        "php": "^7.4|8.*"
     }
 }
