@@ -125,6 +125,9 @@ class ColliveryServiceProvider extends ServiceProvider {
                 'app_lang' => 'PHP',
                 'demo' => false, //set it to true when you're still testing after set it to false
             ];
+	    $cache = $app->make('cache');
+
+            return new Collivery($config, $cache);
     }
 }
 ```
