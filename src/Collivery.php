@@ -40,9 +40,13 @@ class Collivery
                 'app_url' => 'https://example.com', // URL your site is hosted on
                 'user_email' => 'demo@collivery.co.za',
                 'user_password' => 'demo',
+                'app_lang' => 'PHP',
                 'demo' => false,
             ];
         } else {
+            if (!isset($config['app_lang'])) {
+                $config['app_lang'] = 'PHP';
+            }
             $this->config = (object) $config;
         }
 

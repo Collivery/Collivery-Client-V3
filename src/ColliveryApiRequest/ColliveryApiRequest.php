@@ -29,7 +29,7 @@ class ColliveryApiRequest extends ApiRequest
             'X-App-Name' => $this->config['app_name'],
             'X-App-Version' => $this->config['app_version'],
             'X-App-Host' => $this->config['app_host'],
-            'X-App-Lang' => 'C#',
+            'X-App-Lang' => $this->config['app_lang'],
             'X-App-Url' => $this->config['app_url'],
         ];
     }
