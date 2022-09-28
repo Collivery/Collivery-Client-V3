@@ -2,7 +2,7 @@
 
 namespace Mds\Collivery\Support\Laravel;
 
-use Mds\Collivery\Collivery;
+use Mds\Collivery;
 use Illuminate\Support\ServiceProvider;
 
 class ColliveryServiceProvider extends ServiceProvider

@@ -2,24 +2,28 @@
 
 namespace Mds\Collivery;
 
+use Carbon\Carbon;
 use Mds\Collivery\ColliveryApiRequest\ColliveryApiRequest;
+use Mds\Collivery\Models\ValueAddedTax;
 use stdClass;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class Collivery
 {
+    use ValueAddedTax;
+    public bool $useV3;
     protected $client;
     protected stdClass $config;
     protected array $errors = [];
     protected int $checkCache = 2;
 
-    protected $default_address_id;
-    protected $client_id;
-    protected $user_id;
+    protected $defaultAddressId;
+    protected $clientId;
+    protected $userId;
     protected $token;
     protected $cache;
 
-    public function __construct(array $config = [], $cache = null)
+    public function __construct(array $config = [], $cache = null, bool $useV3 = false)
     {
         if (is_null($cache)) {
             $cache_dir = array_key_exists('cache_dir', $config) ? $config['cache_dir'] : null;
@@ -28,15 +32,23 @@ class Collivery
             $this->cache = $cache;
         }
 
-        $this->config = (object) [
-            'app_name' => 'Default App Name', // Application Name
-            'app_version' => '0.0.1',            // Application Version
-            'app_host' => '', // Framework/CMS name and version, eg 'Wordpress 3.8.1 WooCommerce 2.0.20' / 'Joomla! 2.5.17 VirtueMart 2.0.26d'
-            'app_url' => '', // URL your site is hosted on
-            'user_email' => 'demo@collivery.co.za',
-            'user_password' => 'demo',
-            'demo' => false,
-        ];
+        if (empty($config)) {
+            $this->config = (object) [
+                'app_name' => 'My Custom App', // Application Name
+                'app_version' => '0.2.1',            // Application Version
+                'app_host' => '.NET Framework 4.8', // Framework/CMS name and version, eg 'Wordpress 3.8.1 WooCommerce 2.0.20' / 'Joomla! 2.5.17 VirtueMart 2.0.26d'
+                'app_url' => 'https://example.com', // URL your site is hosted on
+                'user_email' => 'demo@collivery.co.za',
+                'user_password' => 'demo',
+                'app_lang' => 'PHP',
+                'demo' => false,
+            ];
+        } else {
+            if (!isset($config['app_lang'])) {
+                $config['app_lang'] = 'PHP';
+            }
+            $this->config = (object) $config;
+        }
 
         foreach ($config as $key => $value) {
             $this->config->{$key} = $value;
@@ -46,13 +58,14 @@ class Collivery
             $this->config->user_email = 'api@collivery.co.za';
             $this->config->user_password = 'api123';
         }
+        $this->useV3 = $useV3;
     }
 
     /**
      * Returns a list of towns and their ID's for creating new addresses.
      * Town can be filtered by country of province (ZAF Only).
      */
-    public function getTowns(string $country = 'ZAF', ?string $province = null): ?array
+    public function getTowns(string $country = 'ZAF', ?string $province = null, int $perPage = 0, int $page = 1): ?array
     {
         $cacheKey = "collivery.towns.$country";
         if ($province) {
@@ -68,9 +81,12 @@ class Collivery
                 'province' => $province,
                 'country' => $country,
                 'api_token' => $this->token,
+                'per_page' => $perPage,
+                'page' => $page,
             ]);
 
             if (!empty($towns)) {
+                $towns = $this->formatData($towns, ['name', 'id']);
                 if ($this->checkCache) {
                     $this->cache->put($cacheKey, $towns, 60 * 24);
                 }
@@ -94,7 +110,7 @@ class Collivery
      * Returns a list of towns, suburbs, and the towns the suburbs belong to with their ID's for creating new addresses.
      * The idea is that this could be used in an auto complete function.
      */
-    public function searchTowns(string $name): ?array
+    public function searchTowns(string $name, int $perPage = 0, string $country = 'ZAF'): ?array
     {
         $cacheKey = 'collivery.search_towns.'.$name;
         if (strlen($name) < 2) {
@@ -107,8 +123,11 @@ class Collivery
         try {
             $result = $this->client()->request(
                 '/v3/towns',
-                ['search' => $name,
+                [
+                    'search' => $name,
                     'api_token' => $this->token,
+                    'per_page' => $perPage,
+                    'country' => $country,
                 ]
             );
         } catch (HttpException $e) {
@@ -118,6 +137,8 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->formatData($result, ['name', 'id']);
+
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -133,7 +154,7 @@ class Collivery
     /**
      * Returns all the suburbs of a town.
      */
-    public function getSuburbs(int $townId): ?array
+    public function getSuburbs(int $townId, int $perPage = 0, int $page = 1): ?array
     {
         $cacheKey = 'collivery.suburbs.'.$townId;
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
@@ -141,9 +162,11 @@ class Collivery
         }
 
         try {
-            $result = $result = $this->client()->request('/v3/suburbs/', [
+            $result = $this->client()->request('/v3/suburbs/', [
                 'api_token' => $this->token,
                 'town_id' => $townId,
+                'per_page' => $perPage,
+                'page' => $page,
             ]);
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
@@ -152,6 +175,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->formatData($result, ['name', 'id']);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24 * 7);
             }
@@ -187,6 +211,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->formatData($result, ['name', 'id']);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24 * 7);
             }
@@ -204,16 +229,18 @@ class Collivery
      */
     public function getServices(): ?array
     {
+        if (!$this->clientId) {
+            $this->authenticate();
+        }
+
         $cacheKey = 'collivery.services';
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
 
         try {
-            $result = $this->api->request('/v3/service_types', [
-                'query' => [
-                    'api_token' => $this->token,
-                ],
+            $result = $this->client()->request('/v3/service_types', [
+                'api_token' => $this->token,
             ]);
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
@@ -222,6 +249,8 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->formatData($result, ['text', 'id']);
+
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24 * 7);
             }
@@ -240,16 +269,13 @@ class Collivery
     public function getParcelTypes(): ?array
     {
         $cacheKey = 'collivery.parcel_types';
-
-        $this->cache->forget($cacheKey);
-
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
 
         try {
             $result = $this->client()->request(
-                '/v3/service_types',
+                '/v3/parcel_types',
                 [
                     'api_token' => $this->token,
                 ]
@@ -261,6 +287,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->mapParcelTypes($result);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24 * 7);
             }
@@ -274,10 +301,10 @@ class Collivery
 
     public function getAddress(int $addressId): ?array
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
-        $cacheKey = 'collivery.address.'.$this->client_id.'.'.$addressId;
+        $cacheKey = 'collivery.address.'.$this->clientId.'.'.$addressId;
 
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
@@ -290,10 +317,11 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
+            $result = $this->mapAddress([$result])[0];
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -302,7 +330,7 @@ class Collivery
         }
             $this->setError('result_unexpected', 'No address_id returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -310,10 +338,11 @@ class Collivery
      */
     public function getAddresses(array $filter = []): ?array
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
-        $cacheKey = 'collivery.addresses.'.$this->client_id;
+
+        $cacheKey = 'collivery.addresses.'.$this->clientId;
         if (($this->checkCache == 2) && empty($filter) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -328,6 +357,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->mapAddress($result['data']);
             if ($this->checkCache != 0 && empty($filter)) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -341,12 +371,11 @@ class Collivery
 
     public function getContacts(int $addressId): ?array
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
 
-        $cacheKey = 'collivery.contacts.'.$this->client_id.'.'.$addressId;
-
+        $cacheKey = 'collivery.contacts.'.$this->clientId.'.'.$addressId;
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -363,6 +392,7 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $result = $this->mapContacts($result['data'], $addressId);
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
             }
@@ -379,10 +409,10 @@ class Collivery
      */
     public function getPod(int $colliveryId): ?array
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
-        $cacheKey = 'collivery.pod.'.$this->client_id.'.'.$colliveryId;
+        $cacheKey = 'collivery.pod.'.$this->clientId.'.'.$colliveryId;
 
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
@@ -416,6 +446,10 @@ class Collivery
      */
     public function getWaybill(int $colliveryId): ?array
     {
+        if (!$this->clientId) {
+            $this->authenticate();
+        }
+
         try {
             $result = $this->client()->request('/v3/waybill/'.$colliveryId, [
                 'api_token' => $this->token,
@@ -423,7 +457,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
@@ -431,18 +465,18 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
      * Returns a list of avaibale parcel images for a given Waybill Number.
      */
-    public function getParcelImageList(int $colliveryId): ?array
+    public function getParcelImageList(int $colliveryId)
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
-        $cacheKey = 'collivery.parcel_image_list.'.$this->client_id.'.'.$colliveryId;
+        $cacheKey = 'collivery.parcel_image_list.'.$this->clientId.'.'.$colliveryId;
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
@@ -455,13 +489,12 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
-        if (!empty($result)) {
-            if (isset($result['error_id'])) {
-                $this->setError($result['error_id'], $result['error']);
-            } elseif ($this->checkCache != 0) {
+        if (!empty($result['data'])) {
+            $result = $result['data'];
+            if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 12);
             }
 
@@ -469,7 +502,7 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -483,10 +516,10 @@ class Collivery
      */
     public function getParcelImage(string $parcelId): ?array
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
-        $cacheKey = 'collivery.parcel_image.'.$this->client_id.'.'.$parcelId;
+        $cacheKey = 'collivery.parcel_image.'.$this->clientId.'.'.$parcelId;
 
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
@@ -522,11 +555,11 @@ class Collivery
      */
     public function getStatus(int $colliveryId): ?array
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
 
-        $cacheKey = 'collivery.status.'.$this->client_id.'.'.$colliveryId;
+        $cacheKey = 'collivery.status.'.$this->clientId.'.'.$colliveryId;
 
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
@@ -543,6 +576,8 @@ class Collivery
         }
 
         if (!empty($result)) {
+            $size = count($result);
+            $result = $this->mapStatus($result[$size - 1], $colliveryId); // latest only
             if ($this->checkCache != 0) {
                 $this->cache->put($cacheKey, $result, 60 * 12);
             }
@@ -612,11 +647,11 @@ class Collivery
      */
     public function getDefaultAddressId(): int
     {
-        if (!$this->default_address_id) {
+        if (!$this->defaultAddressId) {
             $this->authenticate();
         }
 
-        return $this->default_address_id;
+        return $this->defaultAddressId;
     }
 
     /**
@@ -624,7 +659,7 @@ class Collivery
      */
     public function addAddress(array $data)
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
         $location_types = $this->getLocationTypes();
@@ -662,10 +697,17 @@ class Collivery
         }
 
         if (!$this->hasErrors()) {
+            $data['contact'] = [
+                'full_name' => $data['full_name'],
+                'phone' => str_replace(' ', '', $data['phone']),
+                'cellphone' => str_replace(' ', '', $data['cellphone']),
+                'email' => $data['email'],
+            ];
+
             try {
                 $data['api_token'] = $this->token;
-                $result = $this->client()->request('/v3/address/', $data);
-                $this->cache->forget('collivery.addresses.'.$this->client_id);
+                $result = $this->client()->request('/v3/address/', $data, 'POST');
+                $this->cache->forget('collivery.addresses.'.$this->clientId);
             } catch (HttpException $e) {
                 $this->setError($e->getCode(), $e->getMessage());
 
@@ -691,10 +733,10 @@ class Collivery
      */
     public function addContact(array $data)
     {
-        if (!$this->client_id) {
+        if (!$this->clientId) {
             $this->authenticate();
         }
-        $cacheKey = 'collivery.addresses.'.$this->client_id;
+        $cacheKey = 'collivery.addresses.'.$this->clientId;
         if (!isset($data['address_id'])) {
             $this->setError('missing_data', 'address_id not set.');
         } elseif (!is_array($this->getAddress($data['address_id']))) {
@@ -722,7 +764,6 @@ class Collivery
                     $data,
                     'POST'
                 );
-                $this->cache->forget($cacheKey);
             } catch (HttpException $e) {
                 $this->setError($e->getCode(), $e->getMessage());
 
@@ -747,7 +788,60 @@ class Collivery
      */
     public function getPrice(array $data)
     {
-        return $this->validate($data);
+        $shouldMap = false;
+        if (!$this->clientId) {
+            $this->authenticate();
+        }
+        if (!array_key_exists('collection_town', $data) && !array_key_exists('delivery_location_type', $data)) {
+            $towns = $this->getTowns();
+            if (!isset($data['collivery_from']) && !isset($data['from_town_id'])) {
+                $this->setError('missing_data', 'collivery_from/from_town_id not set.');
+            } elseif (isset($data['collivery_from']) && !is_array($this->getAddress($data['collivery_from']))) {
+                $this->setError('invalid_data', 'Invalid Address ID for: collivery_from.');
+            } elseif (isset($data['from_town_id']) && !isset($towns[$data['from_town_id']])) {
+                $this->setError('invalid_data', 'Invalid Town ID for: from_town_id.');
+            }
+
+            if (!isset($data['collivery_to']) && !isset($data['to_town_id'])) {
+                $this->setError('missing_data', 'collivery_to/to_town_id not set.');
+            } elseif (isset($data['collivery_to']) && !is_array($this->getAddress($data['collivery_to']))) {
+                $this->setError('invalid_data', 'Invalid Address ID for: collivery_to.');
+            } elseif (isset($data['to_town_id']) && !isset($towns[$data['to_town_id']])) {
+                $this->setError('invalid_data', 'Invalid Town ID for: to_town_id.');
+            }
+            $shouldMap = true;
+        }
+
+        if (!isset($data['service'])) {
+            $this->setError('missing_data', 'service not set.');
+        }
+        if (!$this->hasErrors()) {
+            // $data['services'] = [$data['service']];
+            $data['api_token'] = $this->token;
+            if ($shouldMap) {
+                $data = $this->commonFieldsMapping($data);
+            }
+
+            try {
+                $result = $this->client()->request(
+                    '/v3/quote/',
+                    $data,
+                    'POST'
+                );
+            } catch (HttpException $e) {
+                $this->setError($e->getCode(), $e->getMessage());
+
+                return false;
+            }
+
+            if (!empty($result)) {
+                return $this->mappedResult($data, $result);
+            }
+
+            $this->setError('result_unexpected', 'No result returned.');
+
+            return false;
+        }
     }
 
     /**
@@ -767,57 +861,10 @@ class Collivery
      */
     public function validate(array $data)
     {
-        $contacts_from = $this->getContacts($data['collivery_from']);
-        $contacts_to = $this->getContacts($data['collivery_to']);
-        $parcel_types = $this->getParcelTypes();
-        $services = $this->getServices();
-
-        if (!isset($data['collivery_from'])) {
-            $this->setError('missing_data', 'collivery_from not set.');
-        } elseif (!is_array($this->getAddress($data['collivery_from']))) {
-            $this->setError('invalid_data', 'Invalid Address ID for: collivery_from.');
-        }
-
-        if (!isset($data['contact_from'])) {
-            $this->setError('missing_data', 'contact_from not set.');
-        } elseif (!$this->searchContact($contacts_from, $data['contact_from'])) {
-            $this->setError('invalid_data', 'Invalid Contact ID for: contact_from.');
-        }
-
-        if (!isset($data['collivery_to'])) {
-            $this->setError('missing_data', 'collivery_to not set.');
-        } elseif (!$this->searchContact($contacts_to, $data['contact_to'])) {
-            $this->setError('invalid_data', 'Invalid Address ID for: collivery_to.');
-        }
-
-        if (!isset($data['contact_to'])) {
-            $this->setError('missing_data', 'contact_to not set.');
-        } elseif (!isset($contacts_to[$data['contact_to']])) {
-            $this->setError('invalid_data', 'Invalid Contact ID for: contact_to.');
-        }
-
-        if (!isset($data['collivery_type'])) {
-            $this->setError('missing_data', 'collivery_type not set.');
-        } elseif (!isset($parcel_types[$data['collivery_type']])) {
-            $this->setError('invalid_data', 'Invalid collivery_type.');
-        }
-
-        if (!isset($data['service'])) {
-            $this->setError('missing_data', 'service not set.');
-        } elseif (!isset($services[$data['service']])) {
-            $this->setError('invalid_data', 'Invalid service.');
-        }
+        $this->commonValidation($data);
 
         if (!$this->hasErrors()) {
-            $data['api_token'] = $this->token;
-            if (isset($data['to_town_id'], $data['from_town_id'])) {
-                $data['collection_town'] = $data['from_town_id'];
-                $data['delivery_town'] = $data['to_town_id'];
-            }
-            if (isset($data['collivery_from'], $data['collivery_to'])) {
-                $data['collection_address'] = $data['collivery_from'];
-                $data['delivery_address'] = $data['collivery_to'];
-            }
+            $data = $this->commonFieldsMapping($data);
 
             $data['services'] = [$data['service']];
             $data['api_token'] = $this->token;
@@ -835,7 +882,9 @@ class Collivery
             }
 
             if (!empty($result)) {
-                return $result;
+                // process results
+                // times set to the quotes send back
+                return $this->mappedResult($data, $result);
             }
 
             $this->setError('result_unexpected', 'No result returned.');
@@ -850,6 +899,168 @@ class Collivery
      * The Waybill No is return apon successful creation of the collivery.
      */
     public function addCollivery(array $data)
+    {
+        $this->commonValidation($data);
+
+        if (!$this->hasErrors()) {
+            $data['api_token'] = $this->token;
+            $data['collection_address'] = $data['collivery_from'];
+            $data['delivery_address'] = $data['collivery_to'];
+            $data['collection_contact'] = $data['contact_from'];
+            $data['delivery_contact'] = $data['contact_to'];
+            $data['parcel_type'] = $data['collivery_type'];
+
+            try {
+                $result = $this->client()->request(
+                    '/v3/waybill/',
+                    $data,
+                    'POST'
+                );
+            } catch (HttpException $e) {
+                $this->setError($e->getCode(), $e->getMessage());
+
+                return false;
+            }
+
+            if (isset($result['data']['id'])) {
+                return $result['data']['id'];
+            }
+
+            $this->setError('result_unexpected', 'No result returned.');
+
+            return false;
+        }
+    }
+
+    /**
+     * Accepts the newly created Collivery, moving it from Waiting Client Acceptance
+     * to Accepted so that it can be processed.
+     */
+    public function acceptCollivery(int $colliveryId): array
+    {
+        if (!$this->token) {
+            $this->authenticate();
+        }
+
+        try {
+            $result = $this->client()->request('/v3/status_tracking/'.$colliveryId, [
+                'api_token' => $this->token,
+                'status_id' => 3,
+            ], 'PUT');
+        } catch (HttpException $e) {
+            $this->setError($e->getCode(), $e->getMessage());
+
+            return false;
+        }
+
+        if (!empty($result)) {
+            return $result;
+        }
+            $this->setError('result_unexpected', 'No result returned.');
+
+        return false;
+    }
+
+    public function formatData(array $data, array $fields): array
+    {
+        [$key, $value] = $fields;
+
+        return array_column(array_key_exists('data', $data) ? $data['data'] : $data, $key, $value);
+    }
+
+    protected function init(): bool
+    {
+        $this->client = new ColliveryApiRequest((array) $this->config);
+
+        return true;
+    }
+
+    protected function client(): ColliveryApiRequest
+    {
+        if (!$this->client) {
+            $this->init();
+        }
+
+        if (!$this->token) {
+            $this->authenticate();
+        }
+
+        return $this->client;
+    }
+
+    /**
+     * Authenticate and set the token
+     *
+     * @return string
+     */
+    protected function authenticate()
+    {
+        $cacheKey = 'collivery.auth';
+
+        if (
+            $this->checkCache == 2
+            && $this->cache->has($cacheKey)
+            && $this->cache->get($cacheKey)['email_address'] == $this->config->user_email
+        ) {
+            $authenticate = $this->cache->get($cacheKey);
+            $this->defaultAddressId = $authenticate['client']['primary_address']['id'];
+            $this->clientId = $authenticate['client']['id'];
+            $this->userId = $authenticate['id'];
+            $this->token = $authenticate['api_token'];
+
+            return true;
+        }
+
+        if (!$this->init()) {
+            return false;
+        }
+
+        $email = $this->config->user_email;
+        $password = $this->config->user_password;
+
+        try {
+            $authenticate = $this->client->request('/v3/login', [
+                'email' => $email,
+                'password' => $password,
+            ], 'POST');
+        } catch (HttpException $e) {
+            $this->setError($e->getCode(), $e->getMessage());
+
+            return false;
+        }
+
+        if (is_array($authenticate) && isset($authenticate['api_token'])) {
+            if ($this->checkCache != 0) {
+                $this->cache->put($cacheKey, $authenticate, 50);
+            }
+
+            $this->defaultAddressId = $authenticate['client']['primary_address']['id'];
+            $this->clientId = $authenticate['client']['id'];
+            $this->userId = $authenticate['id'];
+            $this->token = $authenticate['api_token'];
+
+            return true;
+        }
+
+            $this->setError('result_unexpected', 'No result returned.');
+
+        return false;
+    }
+
+    /**
+     * Add a new error
+     */
+    protected function setError(string $id, string $text): void
+    {
+        $this->errors[$id] = $text;
+    }
+
+    private function searchContact(array $contacts, int $contactId): bool
+    {
+        return in_array($contactId, array_column($contacts, 'id'));
+    }
+
+    private function commonValidation(array $data)
     {
         if (!$this->token) {
             $this->authenticate();
@@ -892,158 +1103,131 @@ class Collivery
 
         if (!isset($data['service'])) {
             $this->setError('missing_data', 'service not set.');
-        } elseif (!isset($services[$data['service']])) {
+        } elseif (!isset($services[(int) $data['service']])) {
             $this->setError('invalid_data', 'Invalid service.');
         }
+    }
 
-        if (!$this->hasErrors()) {
-            $data['api_token'] = $this->token;
+    private function commonFieldsMapping(array $data): array
+    {
+        if (isset($data['collection_time']) && is_numeric($data['collection_time'])) {
+            $data['collection_time'] = date('Y-m-d H:i', $data['collection_time']);
+        }
+        if (isset($data['to_town_id'], $data['from_town_id'])) {
+            $data['collection_town'] = $data['from_town_id'];
+            $data['delivery_town'] = $data['to_town_id'];
+        }
+        if (isset($data['collivery_from'], $data['collivery_to'])) {
             $data['collection_address'] = $data['collivery_from'];
             $data['delivery_address'] = $data['collivery_to'];
-            $data['collection_contact'] = $data['contact_from'];
-            $data['delivery_contact'] = $data['contact_to'];
-            $data['parcel_type'] = $data['collivery_type'];
+        }
 
-            try {
-                $result = $this->client()->request(
-                    '/v3/waybill/',
-                    $data,
-                    'POST'
-                );
-            } catch (HttpException $e) {
-                $this->setError($e->getCode(), $e->getMessage());
+        return $data;
+    }
 
-                return false;
+    private function mappedResult(array $data, array $result): array
+    {
+        $newData = $data;
+        unset($newData['api_token'], $newData['services']);
+        foreach ($result['meta']['times'] as $times) {
+            foreach ($times as $key => $time) {
+                $newData[$key] = strtotime($time);
             }
-
-            if (isset($result['id'])) {
-                return $result['id'];
+        }
+        $notes = [];
+        $colDate = Carbon::parse(date('Y-m-d H:i', $newData['collection_time']));
+        $total = $result['data'][0]['total'];
+        $newData['price']['ex_vat'] = round($total, 2);
+        $newData['price']['inc_vat'] = round($this->addVat($total, $colDate));
+        $newData['price']['vat'] = round($this->vatAmount($total, $colDate), 2);
+        $newData['price']['vat_pct'] = $this->vatPercentage($colDate);
+        $newData['delivery_type'] = $result['data'][0]['delivery_type'];
+        $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
+        if (!isset($result['meta']['warnings'], $result['meta']['times'], $result['meta']['surcharges'])) {
+            foreach ($result['meta'] as $value) {
+                $notes[] = $value;
             }
-
-            $this->setError('result_unexpected', 'No result returned.');
-
-            return false;
-        }
-    }
-
-    /**
-     * Accepts the newly created Collivery, moving it from Waiting Client Acceptance
-     * to Accepted so that it can be processed.
-     */
-    public function acceptCollivery(int $colliveryId): array
-    {
-        if (!$this->token) {
-            $this->authenticate();
-        }
-
-        try {
-            $result = $this->client()->request('/v3/status_tracking/'.$colliveryId, [
-                'api_token' => $this->token,
-                'status_id' => 3,
-            ]);
-        } catch (HttpException $e) {
-            $this->setError($e->getCode(), $e->getMessage());
-
-            return false;
-        }
-
-        if (!empty($result)) {
-            return $result;
-        }
-            $this->setError('result_unexpected', 'No result returned.');
-
-        return false;
-    }
-
-    protected function init(): bool
-    {
-        $this->client = new ColliveryApiRequest((array) $this->config, $this->cache);
-
-        return true;
-    }
-
-    protected function client(): ColliveryApiRequest
-    {
-        if (!$this->client) {
-            $this->init();
-        }
-
-        if (!$this->token) {
-            $this->authenticate();
-        }
-
-        return $this->client;
-    }
-
-    /**
-     * Authenticate and set the token
-     *
-     * @return string
-     */
-    protected function authenticate()
-    {
-        $cacheKey = 'collivery.auth';
-
-        if (
-            $this->checkCache == 2
-            && $this->cache->has($cacheKey)
-            && $this->cache->get($cacheKey)['email_address'] == $this->config->user_email
-        ) {
-            $authenticate = $this->cache->get($cacheKey);
-            $this->default_address_id = $authenticate['client']['primary_address']['id'];
-            $this->client_id = $authenticate['client']['id'];
-            $this->user_id = $authenticate['id'];
-            $this->token = $authenticate['api_token'];
-
-            return true;
-        }
-
-        if (!$this->init()) {
-            return false;
-        }
-
-        $email = $this->config->user_email;
-        $password = $this->config->user_password;
-
-        try {
-            $authenticate = $this->client->request('/v3/login', [
-                'email' => $email,
-                'password' => $password,
-            ], 'POST');
-        } catch (HttpException $e) {
-            $this->setError($e->getCode(), $e->getMessage());
-
-            return false;
-        }
-
-        if (is_array($authenticate) && isset($authenticate['api_token'])) {
-            if ($this->checkCache != 0) {
-                $this->cache->put($cacheKey, $authenticate, 50);
+        } else {
+            foreach ($result['meta']['warnings'] as $value) {
+                $notes[] = $value;
             }
+        }
+        $newData['time_changed_reason'] = $notes;
+        $totalWeight = 0;
+        $volMetric = 0;
+        foreach ($data['parcels'] as $parcel) {
+            $quantity = $parcel['quantity'] ?? 1;
+            $totalWeight += $parcel['weight'] * $quantity;
+            $volMetric += ($quantity * (($parcel['length'] * $parcel['length'] * $parcel['height']) / 5000));
+        }
+        $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
+        $newData['weight'] = round($totalWeight, 2);
+        $newData['vol_weight'] = round($volMetric, 2);
+        $newData['vm_divisor'] = 5000;
 
-            $this->default_address_id = $authenticate['client']['primary_address']['id'];
-            $this->client_id = $authenticate['client']['id'];
-            $this->user_id = $authenticate['id'];
-            $this->token = $authenticate['api_token'];
+        return $newData;
+    }
 
-            return true;
+    private function mapParcelTypes(array $parcelTypes): array
+    {
+        $newParcelTypes = [];
+
+        foreach ($parcelTypes as $parcelType) {
+            $newParcelTypes[$parcelType['id']] = [
+                'type_text' => $parcelType['type_text'],
+                'type_description' => $parcelType['type_description'],
+            ];
         }
 
-            $this->setError('result_unexpected', 'No result returned.');
-
-        return false;
+        return $newParcelTypes;
     }
 
-    /**
-     * Add a new error
-     */
-    protected function setError(string $id, string $text): void
+    private function mapContacts(array $contacts, int $addressId): array
     {
-        $this->errors[$id] = $text;
+        $newContacts = [];
+        $contacts = array_map(function ($contact) use ($addressId) {
+            $nicely_formatted = implode(', ', array_filter([
+                $contact['full_name'],
+                $contact['work_phone'],
+                $contact['cellphone'],
+                $contact['email'],
+            ]));
+            $contact = $contact + ['phone' => $contact['cellphone'] ?? $contact['work_phone']];
+            $contact = $contact + ['address_id' => $addressId];
+            $contact = $contact + ['contact_id' => $contact['id']];
+
+            return $contact + ['nice_contact' => $nicely_formatted];
+        }, $contacts);
+
+        foreach ($contacts as $contact) {
+            $newContacts[$contact['id']] = $contact;
+        }
+
+        return $newContacts;
     }
 
-    private function searchContact(array $contacts, int $contactId): bool
+    private function mapAddress(array $addresses): array
     {
-        return in_array($contactId, array_column($contacts, 'id'));
+        return array_map(function ($address) {
+            $address = $address + ['nice_address' => $address['text']];
+            $address = $address + ['building_details' => $address['building_complex_name']];
+            $address = $address + ['street' => $address['street_number'].$address['street_name']];
+            $address = $address + ['country_brief' => ($address['country_name'] === 'South Africa') ? 'ZAF' : $address['country_name']];
+
+            return $address + ['surcharge' => $address['location_type']['surcharge_amount']];
+        }, $addresses);
+    }
+
+    private function mapStatus(array $status, int $colliveryId): array
+    {
+        $waybill = $this->getWaybill($colliveryId);
+
+        $status['status_text'] = $status['status_name'];
+        if ($waybill) {
+            $status['delivery_date'] = date('Y-m-d', $waybill['delivery_time']);
+            $status['delivery_time'] = date('H:i:s', $waybill['delivery_time']);
+        }
+
+        return $status;
     }
 }

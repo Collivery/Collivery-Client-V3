@@ -21,6 +21,8 @@ Included is a simple cache file that handles all the caching. Its a file based c
 
 The package is also available on Composer as mds/collivery.
 
+Use ValidationException class for errors that might be thrown by API other than HttpException errors
+
 Usage
 =====
 
@@ -67,6 +69,66 @@ class MyCacheClass extends SomeCacheClass {
 $collivery = new Collivery( $config, new MyCacheClass );
 
 ```
+To use the SDK in your laravel application, create a Collivery class that extends Collivery class in the SDK and a ColliveryServiceProvider class
+as follows:
+
+```php
+class Collivery extends \Mds\Collivery\Collivery
+{
+    /**
+     * @return \App\Collivery\Collivery
+     */
+    public function getInstance(): Collivery
+    {
+        return $this;
+    }
+}
+
+class ColliveryServiceProvider extends ServiceProvider {
+    /**
+     * Indicates if loading of the provider is deferred.
+     *
+     * @var bool
+     */
+    protected $defer = false;
+
+    /**
+     * Register the service provider.
+     */
+    public function register()
+    {
+        $this->registerCollivery();
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array
+     */
+    public function provides()
+    {
+        return ['collivery'];
+    }
+    
+    /**
+     * Register the service provider.
+     */
+    protected function registerCollivery()
+    {
+        $config = [
+                'app_name' => 'XXXXXX',
+                'app_version' => 'XXXXXX',
+                'app_host' => 'XXXXXX',
+                'app_url' => 'XXXXX',
+                'user_email' => 'XXXXXX',
+                'user_password' => "XXXXXXXX",
+                'app_lang' => 'PHP',
+                'demo' => false, //set it to true when you're still testing after set it to false
+            ];
+    }
+}
+```
+Do not forget to register the service provider class.
 
 Here is a list of all the available functions:
 

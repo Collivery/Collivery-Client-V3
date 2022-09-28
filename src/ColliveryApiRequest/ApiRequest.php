@@ -7,7 +7,7 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\Uri;
-use Illuminate\Support\Str;
+use Mds\Collivery\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -88,6 +88,9 @@ abstract class ApiRequest implements ApiRequestContract
         return str_replace('//', '/', $path);
     }
 
+    /**
+     * @throws ValidationException
+     */
     protected function parseErrorMessage(Response $response): string
     {
         // uf the token expired and we have an unauthentcated error then clear the token
@@ -105,22 +108,8 @@ abstract class ApiRequest implements ApiRequestContract
         if (is_object($contents) && property_exists($contents, 'message')) {
             return $contents->message;
         }
-
-        // Because parsing the error messages from Laravel's validation layer sucks...
-        $message = '';
-        foreach ((array) $contents as $key => $error) {
-            if (!is_numeric($key)) {
-                $message .= Str::title(str_replace(['-', '_'], [' ', ' '], $key)).': ';
-            }
-
-            if (is_array($error) || is_object($error)) {
-                $message .= implode(', ', (array) $error);
-            } else {
-                $message .= $error;
-            }
-        }
-
-        return $message;
+        $contents = is_array($contents) ? $contents : (array) $contents;
+        throw new ValidationException($contents);
     }
 
     private function handleRequest(string $url, array $urlParameters, string $method): array
@@ -132,6 +121,10 @@ abstract class ApiRequest implements ApiRequestContract
 
         $contents = $response->getBody();
         $response = json_decode($contents, true);
+
+        if (array_key_exists('meta', $response)) {
+            return $response;
+        }
 
         return $response['data'] ?? [];
     }
