@@ -109,6 +109,7 @@ abstract class ApiRequest implements ApiRequestContract
             return $contents->message;
         }
         $contents = is_array($contents) ? $contents : (array) $contents;
+        $contents = call_user_func_array('array_merge', $contents);
         throw new ValidationException($contents);
     }
 
