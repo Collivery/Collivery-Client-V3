@@ -353,10 +353,14 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
-        if (!empty($result['data'])) {
+        if (!empty($result)) {
+            if (empty($result['data'])) {
+                $this->setError('result_unexpected', 'No address_id returned.');
+                return [];
+            }
             $result = $this->mapAddress($result['data']);
             if ($this->checkCache != 0 && empty($filter)) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
@@ -366,7 +370,7 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No address_id returned.');
 
-        return null;
+        return false;
     }
 
     public function getContacts(int $addressId): ?array
