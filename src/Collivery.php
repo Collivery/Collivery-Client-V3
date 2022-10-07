@@ -356,7 +356,7 @@ class Collivery
             return null;
         }
 
-        if (!empty($result)) {
+        if (!empty($result['data'])) {
             $result = $this->mapAddress($result['data']);
             if ($this->checkCache != 0 && empty($filter)) {
                 $this->cache->put($cacheKey, $result, 60 * 24);
@@ -364,7 +364,7 @@ class Collivery
 
             return $result;
         }
-             $this->setError('result_unexpected', 'No address_id returned.');
+        $this->setError('result_unexpected', 'No address_id returned.');
 
         return null;
     }
