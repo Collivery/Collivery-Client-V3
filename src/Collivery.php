@@ -1148,8 +1148,8 @@ class Collivery
         $newData['price']['inc_vat'] = round($this->addVat($total, $colDate));
         $newData['price']['vat'] = round($this->vatAmount($total, $colDate), 2);
         $newData['price']['vat_pct'] = $this->vatPercentage($colDate);
-        $newData['price']['inc_weight'] = $result['meta']['extras']['inc_weight'];
-        $newData['price']['rate_per_kg'] = $result['meta']['extras']['rate_per_kg'];
+        $newData['price']['inc_weight'] = $result['meta']['extras'][0]['inc_weight'];
+        $newData['price']['rate_per_kg'] = $result['meta']['extras'][0]['rate_per_kg'];
         $newData['delivery_type'] = $result['data'][0]['delivery_type'];
         $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
         if (!isset($result['meta']['warnings'], $result['meta']['times'], $result['meta']['surcharges'])) {
@@ -1163,9 +1163,9 @@ class Collivery
         }
         $newData['time_changed_reason'] = $notes;
         $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
-        $newData['weight'] = round($result['meta']['extras']['weight'], 2);
-        $newData['vol_weight'] = round($result['meta']['extras']['vol_weight'], 2);
-        $newData['vm_divisor'] = $result['meta']['extras']['vm_divisor'];
+        $newData['weight'] = round($result['meta']['extras'][0]['weight'], 2);
+        $newData['vol_weight'] = round($result['meta']['extras'][0]['vol_weight'], 2);
+        $newData['vm_divisor'] = $result['meta']['extras'][0]['vm_divisor'];
 
         return $newData;
     }
