@@ -11,7 +11,6 @@ use Symfony\Component\HttpKernel\Exception\HttpException;
 class Collivery
 {
     use ValueAddedTax;
-    public bool $useV3;
     protected $client;
     protected stdClass $config;
     protected array $errors = [];
@@ -58,7 +57,6 @@ class Collivery
             $this->config->user_email = 'api@collivery.co.za';
             $this->config->user_password = 'api123';
         }
-        $this->useV3 = $useV3;
     }
 
     /**
@@ -146,7 +144,7 @@ class Collivery
             return $result;
         }
 
-                $this->setError('result_unexpected', 'No result returned.');
+        $this->setError('result_unexpected', 'No result returned.');
 
         return null;
     }
@@ -299,7 +297,7 @@ class Collivery
         return null;
     }
 
-    public function getAddress(int $addressId): ?array
+    public function getAddress(int $addressId)
     {
         if (!$this->clientId) {
             $this->authenticate();
@@ -328,7 +326,7 @@ class Collivery
 
             return $result;
         }
-            $this->setError('result_unexpected', 'No address_id returned.');
+        $this->setError('result_unexpected', 'No address_id returned.');
 
         return false;
     }
@@ -336,7 +334,7 @@ class Collivery
     /**
      * Returns all the addresses belonging to a client.
      */
-    public function getAddresses(array $filter = []): ?array
+    public function getAddresses(array $filter = [])
     {
         if (!$this->clientId) {
             $this->authenticate();
@@ -392,7 +390,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
@@ -405,13 +403,13 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
      * Returns the POD image for a given Waybill Number.
      */
-    public function getPod(int $colliveryId): ?array
+    public function getPod(int $colliveryId)
     {
         if (!$this->clientId) {
             $this->authenticate();
@@ -430,7 +428,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
@@ -440,9 +438,9 @@ class Collivery
 
             return $result;
         }
-         $this->setError('result_unexpected', 'No result returned.');
+        $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -536,7 +534,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
@@ -548,7 +546,7 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -557,7 +555,7 @@ class Collivery
      * will be provided. If delivered, the time and receivers name (if availble)
      * with returned.
      */
-    public function getStatus(int $colliveryId): ?array
+    public function getStatus(int $colliveryId)
     {
         if (!$this->clientId) {
             $this->authenticate();
@@ -576,7 +574,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return null;
+            return false;
         }
 
         if (!empty($result)) {
@@ -591,7 +589,7 @@ class Collivery
 
         $this->setError('result_unexpected', 'No result returned.');
 
-        return null;
+        return false;
     }
 
     /**
@@ -777,7 +775,7 @@ class Collivery
             if (isset($result['id'])) {
                 return $result['id'];
             }
-             $this->setError('result_unexpected', 'No contact_id returned.');
+            $this->setError('result_unexpected', 'No contact_id returned.');
 
             return false;
         }
@@ -820,13 +818,13 @@ class Collivery
             $this->setError('missing_data', 'service not set.');
         }
         if (!$this->hasErrors()) {
-            // $data['services'] = [$data['service']];
             $data['api_token'] = $this->token;
             if ($shouldMap) {
                 $data = $this->commonFieldsMapping($data);
             }
 
             try {
+                \Log::debug("Request: " . json_encode($data));
                 $result = $this->client()->request(
                     '/v3/quote/',
                     $data,
@@ -839,6 +837,7 @@ class Collivery
             }
 
             if (!empty($result)) {
+                \Log::debug("Response: " . json_encode($result));
                 return $this->mappedResult($data, $result);
             }
 
@@ -960,7 +959,7 @@ class Collivery
         if (!empty($result)) {
             return $result;
         }
-            $this->setError('result_unexpected', 'No result returned.');
+        $this->setError('result_unexpected', 'No result returned.');
 
         return false;
     }
@@ -1046,7 +1045,7 @@ class Collivery
             return true;
         }
 
-            $this->setError('result_unexpected', 'No result returned.');
+        $this->setError('result_unexpected', 'No result returned.');
 
         return false;
     }
@@ -1125,6 +1124,9 @@ class Collivery
             $data['collection_address'] = $data['collivery_from'];
             $data['delivery_address'] = $data['collivery_to'];
         }
+        if (isset($data['service'])) {
+            $data['services'] = [$data['service']];
+        }
 
         return $data;
     }
@@ -1138,6 +1140,7 @@ class Collivery
                 $newData[$key] = strtotime($time);
             }
         }
+
         $notes = [];
         $colDate = Carbon::parse(date('Y-m-d H:i', $newData['collection_time']));
         $total = $result['data'][0]['total'];
@@ -1145,6 +1148,8 @@ class Collivery
         $newData['price']['inc_vat'] = round($this->addVat($total, $colDate));
         $newData['price']['vat'] = round($this->vatAmount($total, $colDate), 2);
         $newData['price']['vat_pct'] = $this->vatPercentage($colDate);
+        $newData['price']['inc_weight'] = $result['meta']['extras']['inc_weight'];
+        $newData['price']['rate_per_kg'] = $result['meta']['extras']['rate_per_kg'];
         $newData['delivery_type'] = $result['data'][0]['delivery_type'];
         $newData['cover'] = in_array('riskCover', $result['meta']['surcharges']);
         if (!isset($result['meta']['warnings'], $result['meta']['times'], $result['meta']['surcharges'])) {
@@ -1157,17 +1162,10 @@ class Collivery
             }
         }
         $newData['time_changed_reason'] = $notes;
-        $totalWeight = 0;
-        $volMetric = 0;
-        foreach ($data['parcels'] as $parcel) {
-            $quantity = $parcel['quantity'] ?? 1;
-            $totalWeight += $parcel['weight'] * $quantity;
-            $volMetric += ($quantity * (($parcel['length'] * $parcel['length'] * $parcel['height']) / 5000));
-        }
         $newData['parcel_count'] = (isset($data['parcels'])) ? count($data['parcels']) : 1;
-        $newData['weight'] = round($totalWeight, 2);
-        $newData['vol_weight'] = round($volMetric, 2);
-        $newData['vm_divisor'] = 5000;
+        $newData['weight'] = round($result['meta']['extras']['weight'], 2);
+        $newData['vol_weight'] = round($result['meta']['extras']['vol_weight'], 2);
+        $newData['vm_divisor'] = $result['meta']['extras']['vm_divisor'];
 
         return $newData;
     }
