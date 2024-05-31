@@ -390,7 +390,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return false;
+            return null;
         }
 
         if (!empty($result)) {
@@ -403,7 +403,7 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return false;
+        return null;
     }
 
     /**
@@ -459,7 +459,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return false;
+            return null;
         }
 
         if (!empty($result)) {
@@ -467,7 +467,7 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return false;
+        return null;
     }
 
     /**
@@ -534,7 +534,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return false;
+            return null;
         }
 
         if (!empty($result)) {
@@ -546,7 +546,7 @@ class Collivery
         }
         $this->setError('result_unexpected', 'No result returned.');
 
-        return false;
+        return null;
     }
 
     /**
@@ -555,7 +555,7 @@ class Collivery
      * will be provided. If delivered, the time and receivers name (if availble)
      * with returned.
      */
-    public function getStatus(int $colliveryId)
+    public function getStatus(int $colliveryId):?array
     {
         if (!$this->clientId) {
             $this->authenticate();
@@ -574,7 +574,7 @@ class Collivery
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
 
-            return false;
+            return null;
         }
 
         if (!empty($result)) {
@@ -589,7 +589,7 @@ class Collivery
 
         $this->setError('result_unexpected', 'No result returned.');
 
-        return false;
+        return null;
     }
 
     /**
