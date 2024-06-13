@@ -555,40 +555,38 @@ class Collivery
      * will be provided. If delivered, the time and receivers name (if availble)
      * with returned.
      */
-    public function getStatus(int $colliveryId):?array
+    public function getStatus(string|int $colliveryId): ?array
     {
         if (!$this->clientId) {
             $this->authenticate();
         }
 
-        $cacheKey = 'collivery.status.'.$this->clientId.'.'.$colliveryId;
+        $cacheKey = 'collivery.status.' . $this->clientId . '.' . $colliveryId;
+        $this->cache->forget($cacheKey);
 
         if (($this->checkCache == 2) && $this->cache->has($cacheKey)) {
             return $this->cache->get($cacheKey);
         }
 
         try {
-            $result = $this->client()->request('/v3/status_tracking/'.$colliveryId, [
+            $result = $this->client()->request('/v3/status_tracking/' . $colliveryId, [
                 'api_token' => $this->token,
             ]);
         } catch (HttpException $e) {
             $this->setError($e->getCode(), $e->getMessage());
-
             return null;
         }
 
         if (!empty($result)) {
-            $size = count($result);
-            $result = $this->mapStatus($result[$size - 1], $colliveryId); // latest only
+            $result = $this->mapStatus(end($result), $colliveryId); // latest only
             if ($this->checkCache != 0) {
-                $this->cache->put($cacheKey, $result, 60 * 12);
+                $this->cache->put($cacheKey, $result, 5); // Cache for 5 minutes
             }
 
             return $result;
         }
 
         $this->setError('result_unexpected', 'No result returned.');
-
         return null;
     }
 
