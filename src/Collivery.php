@@ -446,7 +446,7 @@ class Collivery
     /**
      * Returns the Waybill PDF image(base_64 encoded) for a given Waybill Number.
      */
-    public function getWaybill(int $colliveryId): ?array
+    public function getWaybill(string|int $colliveryId): ?array
     {
         if (!$this->clientId) {
             $this->authenticate();
@@ -1218,7 +1218,7 @@ class Collivery
         }, $addresses);
     }
 
-    private function mapStatus(array $status, int $colliveryId): array
+    private function mapStatus(array $status, string|int $colliveryId): array
     {
         $waybill = $this->getWaybill($colliveryId);
 
